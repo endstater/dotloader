@@ -13,6 +13,16 @@ type Dotloader struct {
 	conf      map[string]string
 }
 
+/*
+TODO:
+rsync options in config
+git sync
+?clean unlisted
+FIX:
+error output
+config builder
+*/
+
 func NewDotloader() *Dotloader {
 	var d Dotloader
 	home, err := os.UserHomeDir()
@@ -70,7 +80,8 @@ func (d *Dotloader) Sync()  {
 	if copies == nil || repo == ""{
 		return
 	}
-	
+
+	script := ""
 	for _, v := range copies {
 		if v[len(v)-1] == '/'{
 			v = v[:len(v)-1]
@@ -78,6 +89,10 @@ func (d *Dotloader) Sync()  {
 		v = os.ExpandEnv(v)
 		repo = os.ExpandEnv(repo)
 		exec.Command("rsync","-a","--delete",v,repo).Run()
+		vpath := strings.Split(v, "/")
+		destination := "/" + strings.Join(vpath[1:len(vpath)-1],"/")
+		script += "rsync -a --delete "+vpath[len(vpath)-1] + " " + destination + "\n"
+		os.WriteFile(repo+"/load.sh",[]byte(script),0744)
 	}
 	
 }
