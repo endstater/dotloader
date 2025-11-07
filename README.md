@@ -1,5 +1,12 @@
 # Dotloader <img src="https://pkg.go.dev/static/shared/logo/go-blue.svg" alt="Description" height="24pt">
 Simple dotfiles manager working with rsync and git written in go.
+## Install
+Arch:
+```
+git clone https://github.com/endstater/dotloader.git
+cd dotloader
+makepkg -si
+```
 ## First start
 add dirs to `$HOME/.config/dotloader/listen-dirs`
 example:
