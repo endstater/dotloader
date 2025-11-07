@@ -17,10 +17,7 @@ type Dotloader struct {
 TODO:
 rsync options in config
 git sync
-?clean unlisted
-FIX:
-error output
-config builder
+improve project repo
 */
 
 func NewDotloader() *Dotloader {
@@ -35,11 +32,12 @@ func NewDotloader() *Dotloader {
 	return &d
 }
 
-func (d *Dotloader) ReadConfig() {
-	file, err := os.Open(d.homedir + "/.config/dotloader/dotloader.conf")
+func (d *Dotloader) ReadConfig() error {
+	path := d.homedir + "/.config/dotloader/dotloader.conf"
+	file, err := os.Open(path)
 	defer file.Close()
 	if err != nil{
-		panic(err)
+		return fmt.Errorf("Cannot open file: %v", path)
 	}
 	scanner := bufio.NewScanner(file)
   scanner.Split(bufio.ScanLines)
@@ -52,15 +50,17 @@ func (d *Dotloader) ReadConfig() {
 		}
   }
   if err := scanner.Err(); err != nil {
-		panic(err)
+		return fmt.Errorf("Error while scanning: %v",path)
   }
+	return nil
 }
 
-func (d *Dotloader) GetCopies() []string {
-	file, err := os.Open(d.homedir + "/.config/dotloader/listen-dirs")
+func (d *Dotloader) GetCopies() ([]string,error){
+	path := d.homedir + "/.config/dotloader/listen-dirs"
+	file, err := os.Open(path)
 	defer file.Close()
 	if err != nil{
-		return nil
+		return nil, fmt.Errorf("Cannot open file: %v", path)
 	}
 	scanner := bufio.NewScanner(file)
   scanner.Split(bufio.ScanLines)
@@ -69,32 +69,50 @@ func (d *Dotloader) GetCopies() []string {
 		data = append(data,scanner.Text())
   }
   if err := scanner.Err(); err != nil {
-		panic(err)
+		return nil, fmt.Errorf("Error while scanning: %v",path)
   }
-	return data	
+	return data,nil
 }
 
-func (d *Dotloader) Sync()  {
+func (d *Dotloader) Sync() error {
 	repo := d.conf["dotfiles-dir"]
-	copies := d.GetCopies()
-	if copies == nil || repo == ""{
-		return
+	copies, err := d.GetCopies()
+	if copies == nil || repo == "" || err != nil{
+		return fmt.Errorf("Error while reading config files")
 	}
 
-	script := ""
+	script := "#!/sbin/sh\n"
 	for _, v := range copies {
 		if v[len(v)-1] == '/'{
 			v = v[:len(v)-1]
 		}
 		v = os.ExpandEnv(v)
 		repo = os.ExpandEnv(repo)
-		exec.Command("rsync","-a","--delete",v,repo).Run()
+		var err any = exec.Command("rsync","-a","--delete",v,repo).Run().Error()
+
+		if errstr,ok := err.(string); ok{
+			return fmt.Errorf("%v",errstr)
+		}
 		vpath := strings.Split(v, "/")
 		destination := "/" + strings.Join(vpath[1:len(vpath)-1],"/")
 		script += "rsync -a --delete "+vpath[len(vpath)-1] + " " + destination + "\n"
 		os.WriteFile(repo+"/load.sh",[]byte(script),0744)
 	}
-	
+	return nil
+}
+
+func (d *Dotloader) Load() error {
+	repo := os.ExpandEnv(d.conf["dotfiles-dir"])
+	if repo == "" {
+		return fmt.Errorf("Error while reading config files")
+	}
+	cmd := exec.Command(repo+"/load.sh")
+	cmd.Dir = repo
+	var err any = cmd.Run().Error()
+	if errstr,ok := err.(string); ok{
+		return fmt.Errorf("%v",errstr)
+	}
+	return nil
 }
 
 func main(){
@@ -108,9 +126,16 @@ func main(){
 
 	switch args[1]{
 	case "sync":
-		dotloader.Sync()
+		err := dotloader.Sync()
+		if err != nil{
+			fmt.Printf("%v",err)
+		}
+	case "load":
+		err := dotloader.Load()
+		if err != nil{
+			fmt.Printf("%v",err)
+		}
 	default:
 		fmt.Println("Unknown option:",args[1])
-		return
 	}
 }
