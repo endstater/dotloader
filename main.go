@@ -95,10 +95,10 @@ func (d *Dotloader) Sync() error {
 		}
 		v = os.ExpandEnv(v)
 		repo = os.ExpandEnv(repo)
-		var err any = exec.Command("rsync","-a","--delete",v,repo).Run().Error()
+		_, err := exec.Command("rsync","-a","--delete",v,repo).CombinedOutput()
 
-		if errstr,ok := err.(string); ok{
-			return fmt.Errorf("%v",errstr)
+		if err != nil{
+			return fmt.Errorf("%v",err)
 		}
 		vpath := strings.Split(v, "/")
 		destination := "/" + strings.Join(vpath[1:len(vpath)-1],"/")
@@ -115,9 +115,9 @@ func (d *Dotloader) Load() error {
 	}
 	cmd := exec.Command(repo+"/load.sh")
 	cmd.Dir = repo
-	var err any = cmd.Run().Error()
-	if errstr,ok := err.(string); ok{
-		return fmt.Errorf("%v",errstr)
+	_, err := cmd.CombinedOutput()
+	if err != nil{
+		return fmt.Errorf("%v",err)
 	}
 	return nil
 }
