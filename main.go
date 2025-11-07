@@ -151,6 +151,15 @@ func (d *Dotloader) BuildConfig() error {
 	return nil
 }
 
+func (d *Dotloader) Help(){
+	fmt.Println("\ndotloader <option>")
+	fmt.Println("options:")
+	fmt.Println("\tsync, s\tread $HOME/.config/dotloader/listen-dirs for dirs,\n\t\tsync them with local dotfiles repo,\n\t\tmake dotfiles-dir/load.sh")
+	fmt.Println("\tload, l\tlaunch load.sh that sync local dotfiles repo with system")
+	fmt.Println("\tversion, v\tprint version")
+	fmt.Println("\thelp, h\tprint this information")
+}
+
 func main(){
 	dotloader,err := NewDotloader()
 	if err != nil{
@@ -159,22 +168,26 @@ func main(){
 	}
 	
 	args := os.Args
-	if len(args) < 2{
-		dotloader.Sync()
+	if len(args) < 2{	
+		dotloader.Help()
 		return
 	}
 
 	switch args[1]{
-	case "sync":
+	case "sync","s":
 		err := dotloader.Sync()
 		if err != nil{
 			fmt.Printf("%v",err)
 		}
-	case "load":
+	case "load","l":
 		err := dotloader.Load()
 		if err != nil{
 			fmt.Printf("%v",err)
 		}
+	case "help","--help","-h","man","h":
+		dotloader.Help()
+	case "vesion","v":
+		fmt.Printf("\nDotloader\nSimple dotfiles manager working with rsync and git written in go.\nVersion: 0.1\nAuthor: endstater\n")
 	default:
 		fmt.Println("Unknown option:",args[1])
 	}
