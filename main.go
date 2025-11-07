@@ -20,7 +20,7 @@ git sync
 improve project repo
 */
 
-func NewDotloader() *Dotloader {
+func NewDotloader()(*Dotloader,error){
 	var d Dotloader
 	home, err := os.UserHomeDir()
   if err != nil {
@@ -28,8 +28,15 @@ func NewDotloader() *Dotloader {
   }
 	d.homedir = home
 	d.conf = map[string]string{}
-	d.ReadConfig()
-	return &d
+	err = d.BuildConfig()
+	if err != nil{
+		return nil,fmt.Errorf("%v",err)
+	}
+	err = d.ReadConfig()
+	if err != nil{
+		return nil,fmt.Errorf("%v",err)
+	}
+	return &d,nil
 }
 
 func (d *Dotloader) ReadConfig() error {
@@ -115,8 +122,41 @@ func (d *Dotloader) Load() error {
 	return nil
 }
 
+func (d *Dotloader) BuildConfig() error {
+	baseDir := d.homedir+"/.config/dotloader"
+
+	_, err := os.Stat(baseDir)
+	if err == nil {
+		return nil
+	}
+	if !os.IsNotExist(err) {
+		return fmt.Errorf("Failed to check directory %s: %w", baseDir, err)
+	}
+
+	err = os.MkdirAll(baseDir, 0755)
+	if err != nil {
+		return fmt.Errorf("Failed to create directory %s: %w", baseDir, err)
+	}
+
+	err = os.WriteFile(baseDir+"/listen-dirs", []byte(""), 0644)
+	if err != nil {
+		return fmt.Errorf("failed to create file %s: %w", baseDir+"/listen-dirs", err)
+	}
+
+	err = os.WriteFile(baseDir+"/dotloader.conf", []byte(""), 0644)
+	if err != nil {
+		return fmt.Errorf("failed to create file %s: %w", baseDir+"/dotloader.conf", err)
+	}
+
+	return nil
+}
+
 func main(){
-	dotloader := NewDotloader()
+	dotloader,err := NewDotloader()
+	if err != nil{
+		fmt.Printf("%v",err)
+		return
+	}
 	
 	args := os.Args
 	if len(args) < 2{
