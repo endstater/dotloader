@@ -25,6 +25,7 @@ options:
 - `help` `h` - print manual
 ## Build and run
 ```
+mkdir out
 go build -o out
 out/dotloader <option>
 ```
