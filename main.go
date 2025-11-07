@@ -95,7 +95,11 @@ func (d *Dotloader) Sync() error {
 		}
 		v = os.ExpandEnv(v)
 		repo = os.ExpandEnv(repo)
-		_, err := exec.Command("rsync","-a","--delete",v,repo).CombinedOutput()
+		_, err := os.Stat(v)
+		if err != nil {
+			continue
+		}
+		_, err = exec.Command("rsync","-a","--delete",v,repo).CombinedOutput()
 
 		if err != nil{
 			return fmt.Errorf("%v",err)
