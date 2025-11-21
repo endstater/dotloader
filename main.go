@@ -73,6 +73,9 @@ func (d *Dotloader) GetCopies() ([]string,error){
   scanner.Split(bufio.ScanLines)
 	data := []string{}
   for scanner.Scan() {
+		if scanner.Text()[0] == '#'{
+			continue
+		}
 		data = append(data,scanner.Text())
   }
   if err := scanner.Err(); err != nil {
@@ -93,6 +96,11 @@ func (d *Dotloader) Sync() error {
 		if v[len(v)-1] == '/'{
 			v = v[:len(v)-1]
 		}
+		vpath := strings.Split(v, "/")
+		destination := strings.Join(vpath[:len(vpath)-1], "/")
+		if destination[0] != '$'{
+			destination = "/" + destination
+		}
 		v = os.ExpandEnv(v)
 		repo = os.ExpandEnv(repo)
 		_, err := os.Stat(v)
@@ -104,8 +112,6 @@ func (d *Dotloader) Sync() error {
 		if err != nil{
 			return fmt.Errorf("%v",err)
 		}
-		vpath := strings.Split(v, "/")
-		destination := "/" + strings.Join(vpath[1:len(vpath)-1],"/")
 		script += "rsync -a --delete "+vpath[len(vpath)-1] + " " + destination + "\n"
 		os.WriteFile(repo+"/load.sh",[]byte(script),0744)
 	}
